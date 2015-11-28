@@ -12,6 +12,7 @@
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # Copyright Buildbot Team Members
+from __future__ import absolute_import
 
 import os
 
@@ -43,6 +44,11 @@ class BaseTestCase(TestCase):
             return
         raise Exception("%s not raised" % (exceptionClass,))
 
+    def assertIn(self, item, iterable):
+        self.assertTrue(item in iterable,
+                        msg="{item} not found in {iterable}"
+                             .format(item=item,
+                                     iterable=iterable))
 
 class TestYamlConfig(BaseTestCase):
 
@@ -319,7 +325,7 @@ class TestCustomizationRuleSyntax(BaseTestCase):
     def test_applyCustomizationRuleDeleteMissingNode(self):
         self.assertRaisesWithMessage(
             ValueError,
-            "a.d:DELETE' wants to modify non-existing key 'd' at: {'c': [1, 2, 3], 'b': 1}",
+            "a.d:DELETE' wants to modify non-existing key 'd' at:",
             lambda: self.oneTest("a.d:DELETE", None))
 
     def test_applyCustomizationRuleDeleteifMissingNode(self):
@@ -400,6 +406,6 @@ class TestYamlLoader(BaseTestCase):
             },
             "z": 9
         })
-        self.assertEqual(d.keys(), ['b', 'a', 'c', 'z', 'f', 't'])
-        self.assertEqual(d.t.keys(), ['t1', 't3', 't2'])
+        self.assertEqual(list(d.keys()), ['b', 'a', 'c', 'z', 'f', 't'])
+        self.assertEqual(list(d.t.keys()), ['t1', 't3', 't2'])
     _testOrderedKeysInNamespace.skip = "Namespace doesn't keep OrderedDict"

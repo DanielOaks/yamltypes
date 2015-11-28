@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import copy
 import logging
 import os
@@ -121,7 +122,7 @@ class List(Container):
     """ Spec is a Type that is matched against all elements"""
 
     def iter_and_match(self, path, val):
-        for i in xrange(len(val)):
+        for i in range(len(val)):
             self.match_spec(self.spec, "%s[%d]" % (path, i),
                             val[i])
 
@@ -148,19 +149,19 @@ class Dict(Container):
     """ spec is a dictionary of Types"""
 
     def iter_and_match(self, path, val):
-        for k, s in self.spec.items():
+        for k, s in list(self.spec.items()):
             if s.required and k not in val:
                 raise YamlError(path, val,
-                                "needs to define the option '%s', but only has: %r" % (k, val.keys()))
+                                "needs to define the option '%s', but only has: %r" % (k, list(val.keys())))
             if s.forbidden and k in val:
                 raise YamlError(path, val,
                                 "option %s is forbidden" % (k,))
             if s.default is not None and k not in val:
                 val[k] = s.default
-        for k, v in val.items():
+        for k, v in list(val.items()):
             if k not in self.spec:
                 raise YamlError(path, val,
-                                "Key '%s' not defined in spec file, should be one of: %r" % (k, self.spec.keys()))
+                                "Key '%s' not defined in spec file, should be one of: %r" % (k, list(self.spec.keys())))
             self.match_spec(self.spec[k], path + "." + k, v)
 
 
@@ -179,10 +180,10 @@ class Map(Container):
             n = self.name + "_names"
             keyst = Set(n, list, self.names_type)
             keyst.maybenull = False
-            keyst.match(n, val.keys())
+            keyst.match(n, list(val.keys()))
         if val is None:
             raise YamlError(path, val, "Invalid empty value !")
-        for k, v in val.items():
+        for k, v in list(val.items()):
             self.match_spec(self.spec, path + "." + k, v)
 
 
@@ -244,11 +245,12 @@ class YamlConfigBuilder(object):
 
 
     def __init__(self, fn, customizations=None, additionnal_types=None,
-                 specfn=None, yamltypes_dirs=[], needSpec=True):
+                 specfn=None, yamltypes_dirs=None, needSpec=True):
         if customizations is None:
             customizations = []
         # if not specified, default to the directory the yaml file is in
         if not yamltypes_dirs:
+            yamltypes_dirs = []
             yamltypes_dirs.append(os.path.dirname(os.path.abspath(fn)))
         self._dict = self._yamlLoad(fn)
         self.mixCustomizations(os.path.basename(fn), customizations)
@@ -290,7 +292,7 @@ class YamlConfigBuilder(object):
             key, selector = selector.split(".", 1)
             if key not in obj:
                 raise CustomizationError("selector: '%s' wants to traverse non-existing key '%s' in: %s"
-                                         % (orig_selector, key, obj.keys()))
+                                         % (orig_selector, key, list(obj.keys())))
             obj = obj[key]
             if not isinstance(obj, dict):
                 raise CustomizationError("selector: '%s' wants to traverse a non dictionary object "
@@ -383,7 +385,7 @@ class YamlConfigBuilder(object):
                         value = custom[fn][DELETE_ALL_ACTION]
                         selector = DELETE_ALL_ACTION
                         doCustomization(selector, value)
-                    for selector, value in custom[fn].iteritems():
+                    for selector, value in custom[fn].items():
                         if DELETE_ALL_ACTION == selector:
                             continue
                         doCustomization(selector, value)
@@ -411,12 +413,12 @@ class YamlConfigBuilder(object):
                 return self.types[kt]
             except KeyError as e:
                 raise KeyError("Invalid type {e} for node '{node}'. Available: {types!r}"
-                               .format(node=path, e=e, types=self.types.keys()))
+                               .format(node=path, e=e, types=list(self.types.keys())))
 
         ret = None
-        for tname, ttype in dict(string=str, integer=int,
+        for tname, ttype in list(dict(string=str, integer=int,
                                  boolean=bool, float=float,
-                                 anything="anything").items():
+                                 anything="anything").items()):
             if t == tname:
                 kw = {}
                 for k in "values".split():
@@ -436,9 +438,9 @@ class YamlConfigBuilder(object):
             tname = get_component_type(t)
             spec["type"] = tname
             names_type = None
-            if "names_type" in spec.keys():
+            if "names_type" in list(spec.keys()):
                 kt = spec["names_type"]
-                if isinstance(kt, basestring):
+                if isinstance(kt, str):
                     names_type = getType(kt)
                 else:
                     names_type = self.createType(path + "[name]." + tname,
@@ -465,7 +467,7 @@ class YamlConfigBuilder(object):
             if spec["kids"] is None:
                 raise YamlError(path, spec,
                                 "spec[\"kids\"] is None")
-            for k, v in spec["kids"].items():
+            for k, v in list(spec["kids"].items()):
                 kids[k] = self.createType(path + "." + k, k, v)
             ret = Dict(name, dict, kids)
         elif t.startswith("setof"):
